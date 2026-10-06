@@ -1,0 +1,17 @@
+{
+  "name": "CRASH ANALYZER AI",
+  "short_name": "Crash Analyzer",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080b12",
+  "theme_color": "#080b12",
+  "description": "Analyse statistique locale de résultats Crash.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

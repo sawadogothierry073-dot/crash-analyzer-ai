@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crash Analyzer AI">
+<link rel="manifest" href="manifest.json">
+<title>CRASH ANALYZER AI</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#080b12;--card:#111722;--card2:#171e2b;--line:#263244;--txt:#f4f7fb;--muted:#9aa7ba;--green:#39d98a;--yellow:#ffc857;--red:#ff5c77;--blue:#5da9ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#080b12,#0d121c);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input{font:inherit}button{cursor:pointer}
+.app{max-width:900px;margin:auto;padding:16px 14px 42px}.top{position:sticky;top:0;z-index:5;background:rgba(8,11,18,.92);backdrop-filter:blur(14px);padding:10px 0 14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{font-size:22px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.nav{display:flex;gap:8px;overflow:auto;margin-top:12px}.nav button{white-space:nowrap;background:var(--card);border:1px solid var(--line);color:var(--muted);padding:9px 12px;border-radius:12px}.nav button.active{color:#fff;border-color:var(--blue)}
+section{display:none;padding-top:18px}section.active{display:block}.card{background:linear-gradient(145deg,var(--card),#0e141f);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.16)}
+.hero{padding:22px}.hero h2{font-size:28px;margin:0 0 8px}.hero p{color:var(--muted);line-height:1.5}
+.primary{width:100%;border:0;border-radius:15px;padding:15px;background:var(--green);color:#06140d;font-weight:800;font-size:16px}.secondary{border:1px solid var(--line);background:var(--card2);color:#fff;border-radius:12px;padding:11px 14px}
+input[type=file]{display:none}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{background:var(--card2);border-radius:14px;padding:13px}.stat small{display:block;color:var(--muted);font-size:12px}.stat b{font-size:20px;display:block;margin-top:5px}
+.pills{display:flex;gap:7px;flex-wrap:wrap}.pill{background:#1a2433;border:1px solid #2c394d;border-radius:999px;padding:7px 9px;font-size:13px}
+.values{display:flex;gap:7px;flex-wrap:wrap;max-height:220px;overflow:auto}.value{display:flex;align-items:center;gap:5px;background:#1a2433;border:1px solid #2b394d;border-radius:10px;padding:7px}.value input{width:72px;background:transparent;color:#fff;border:0;outline:0}.value button{background:none;border:0;color:var(--red);padding:0}
+.notice{padding:12px;border-radius:12px;background:#151d29;color:var(--muted);line-height:1.45}.good{border-left:4px solid var(--green)}.warn{border-left:4px solid var(--yellow)}.bad{border-left:4px solid var(--red)}
+.pred{font-size:30px;font-weight:850}.muted{color:var(--muted)}.tiny{font-size:12px;color:var(--muted)}canvas{max-height:300px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted)}
+.loader{display:none;margin-top:10px;color:var(--muted)}.loader.show{display:block}.progress{height:7px;background:#202a39;border-radius:10px;overflow:hidden}.progress i{display:block;height:100%;width:0;background:var(--blue)}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="brand"><div><h1>CRASH ANALYZER AI</h1><p>Analyse statistique des résultats récents</p></div><span>📊</span></div>
+  <nav class="nav">
+    <button class="active" data-tab="home">Accueil</button><button data-tab="data">Données</button><button data-tab="analysis">Analyse</button><button data-tab="backtest">Backtest</button><button data-tab="history">Historique</button><button data-tab="expert">Expert</button>
+  </nav>
+</header>
+
+<section id="home" class="active">
+ <div class="card hero">
+  <h2>Analyse tes captures</h2>
+  <p>Importe une ou plusieurs captures contenant des multiplicateurs. L'OCR tente de les lire, puis l'application calcule des statistiques et teste ses estimations sur les données historiques.</p>
+  <label class="primary" style="display:block;text-align:center"><input id="fileInput" type="file" accept="image/*" multiple>📸 IMPORTER UNE CAPTURE</label>
+  <div id="ocrLoader" class="loader"><p id="ocrText">Lecture de la capture…</p><div class="progress"><i id="ocrProgress"></i></div></div>
+ </div>
+ <div class="card">
+  <h3>Tableau de bord</h3>
+  <div class="grid">
+   <div class="stat"><small>Résultats analysés</small><b id="dashN">0</b></div>
+   <div class="stat"><small>Moyenne</small><b id="dashMean">—</b></div>
+   <div class="stat"><small>Médiane</small><b id="dashMedian">—</b></div>
+   <div class="stat"><small>Confiance modèle</small><b id="dashConf">—</b></div>
+  </div>
+ </div>
+ <div class="card"><div id="statusBox" class="notice">⚠️ Ajoute au moins 20 résultats pour lancer une analyse limitée.</div></div>
+</section>
+
+<section id="data">
+ <div class="card">
+  <h3>Résultats détectés</h3>
+  <p class="tiny">Chaque valeur peut être corrigée. Tu peux aussi saisir des résultats manuellement.</p>
+  <div id="values" class="values"></div>
+  <div style="display:flex;gap:8px;margin-top:12px"><button class="secondary" id="addBtn">＋ Ajouter</button><button class="secondary" id="clearBtn">Effacer</button><button class="secondary" id="saveBtn">Sauvegarder</button></div>
+ </div>
+ <div class="card"><div id="detectInfo" class="notice">Aucune capture analysée.</div></div>
+</section>
+
+<section id="analysis">
+ <div class="card">
+  <h3>Estimation statistique</h3>
+  <div id="predictionBox" class="notice">Ajoute des données puis lance l'analyse.</div>
+  <button class="primary" id="analyzeBtn" style="margin-top:12px">🔎 LANCER L'ANALYSE</button>
+ </div>
+ <div class="card"><h3>Statistiques</h3><div class="grid" id="statsGrid"></div></div>
+ <div class="card"><h3>Distribution</h3><canvas id="distChart"></canvas></div>
+ <div class="card"><h3>Historique chronologique</h3><canvas id="seriesChart"></canvas></div>
+ <div class="card"><h3>Récence</h3><div id="recency"></div></div>
+</section>
+
+<section id="backtest">
+ <div class="card">
+  <h3>Backtesting</h3>
+  <p class="muted">Le système cache chaque observation testée et utilise uniquement les valeurs précédentes.</p>
+  <button class="primary" id="backBtn">🧪 LANCER LE BACKTEST</button>
+  <div id="backResult" style="margin-top:12px"></div>
+ </div>
+</section>
+
+<section id="history">
+ <div class="card"><h3>Historique des analyses</h3><div id="historyList" class="muted">Aucune analyse enregistrée.</div></div>
+</section>
+
+<section id="expert">
+ <div class="card">
+  <h3>Mode expert</h3>
+  <div id="expertBox" class="muted">Lance une analyse pour afficher les paramètres, la calibration et les performances.</div>
+ </div>
+</section>
+</div>
+
+<script>
+const KEY="crashAnalyzerAI_v1";
+let data=JSON.parse(localStorage.getItem(KEY)||"{}");
+if(!Array.isArray(data.values)) data.values=[];
+if(!Array.isArray(data.history)) data.history=[];
+let charts={};
+
+const $=s=>document.querySelector(s);
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+function fmt(x){return Number.isFinite(x)?x.toFixed(2):"—"}
+function median(a){if(!a.length)return NaN;let b=[...a].sort((x,y)=>x-y),m=Math.floor(b.length/2);return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function quantile(a,q){if(!a.length)return NaN;let b=[...a].sort((x,y)=>x-y),p=(b.length-1)*q,i=Math.floor(p),f=p-i;return b[i]+(b[i+1]-b[i]||0)*f}
+function mean(a){return a.reduce((s,x)=>s+x,0)/a.length}
+function std(a){if(a.length<2)return 0;let m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1))}
+function clean(a){return a.map(Number).filter(x=>Number.isFinite(x)&&x>=1&&x<=100000)}
+function intervalFor(x){
+ if(x<1.2)return "<1.20x"; if(x<1.5)return "1.20-1.50x"; if(x<2)return "1.50-2.00x"; if(x<3)return "2.00-3.00x"; if(x<5)return "3.00-5.00x"; if(x<10)return "5.00-10.00x"; return "10.00x+";
+}
+function dist(a){
+ let bins=["<1.20","1.20-1.50","1.50-2.00","2.00-3.00","3.00-5.00","5.00-10.00","10.00+"];
+ return bins.map((b,i)=>a.filter(x=>intervalFor(x)===b).length);
+}
+function currentStats(a){
+ return {n:a.length,mean:mean(a),median:median(a),min:Math.min(...a),max:Math.max(...a),sd:std(a),q1:quantile(a,.25),q3:quantile(a,.75),
+ lt120:a.filter(x=>x<1.2).length/a.length, b120150:a.filter(x=>x>=1.2&&x<1.5).length/a.length,
+ b150200:a.filter(x=>x>=1.5&&x<2).length/a.length,b200300:a.filter(x=>x>=2&&x<3).length/a.length,
+ gt3:a.filter(x=>x>=3).length/a.length,gt5:a.filter(x=>x>=5).length/a.length,gt10:a.filter(x=>x>=10).length/a.length};
+}
+function renderValues(){
+ const box=$("#values"); box.innerHTML="";
+ data.values.forEach((v,i)=>{let d=document.createElement("div");d.className="value";d.innerHTML=`<input inputmode="decimal" value="${v.toFixed(2)}"><button title="Supprimer">×</button>`;
+ d.querySelector("input").onchange=e=>{let n=parseFloat(e.target.value);if(Number.isFinite(n)&&n>=1){data.values[i]=n;save();renderAll()}};
+ d.querySelector("button").onclick=()=>{data.values.splice(i,1);save();renderAll()};box.appendChild(d)});
+}
+function renderDashboard(){
+ let a=clean(data.values),s=a.length?currentStats(a):null;
+ $("#dashN").textContent=a.length;$("#dashMean").textContent=s?fmt(s.mean):"—";$("#dashMedian").textContent=s?fmt(s.median):"—";
+ $("#dashConf").textContent=data.lastConfidence!=null?data.lastConfidence+"/100":"—";
+ let box=$("#statusBox");
+ if(a.length<20){box.className="notice bad";box.textContent="⚠️ Données insuffisantes. Minimum recommandé : 20 résultats."}
+ else if(a.length<50){box.className="notice warn";box.textContent="🟠 Analyse limitée : 20 à 49 résultats."}
+ else if(a.length<100){box.className="notice warn";box.textContent="🟡 Analyse correcte : 50 à 99 résultats."}
+ else {box.className="notice good";box.textContent="🟢 Échantillon plus robuste : 100 résultats ou plus."}
+}
+function renderAnalysis(){
+ let a=clean(data.values); if(!a.length)return;
+ let s=currentStats(a),g=$("#statsGrid");g.innerHTML="";
+ [["Moyenne",fmt(s.mean)],["Médiane",fmt(s.median)],["Minimum",fmt(s.min)],["Maximum",fmt(s.max)],["Écart-type",fmt(s.sd)],["Q1",fmt(s.q1)],["Q3",fmt(s.q3)],["<1.20x",(s.lt120*100).toFixed(1)+"%"],["1.20-1.50x",(s.b120150*100).toFixed(1)+"%"],["1.50-2.00x",(s.b150200*100).toFixed(1)+"%"],["2.00-3.00x",(s.b200300*100).toFixed(1)+"%"],[">5x",(s.gt5*100).toFixed(1)+"%"]].forEach(x=>{let d=document.createElement("div");d.className="stat";d.innerHTML=`<small>${x[0]}</small><b>${x[1]}</b>`;g.appendChild(d)});
+ $("#recency").innerHTML=[10,20,50,100].map(k=>{let r=a.slice(-Math.min(k,a.length));return `<div class="pills" style="margin:7px 0"><span class="pill">${Math.min(k,a.length)} derniers</span><span class="pill">moy. ${fmt(mean(r))}</span><span class="pill">méd. ${fmt(median(r))}</span><span class="pill">≥2x ${(r.filter(x=>x>=2).length/r.length*100).toFixed(1)}%</span></div>`}).join("");
+ let labels=a.map((_,i)=>i+1);
+ if(charts.series)charts.series.destroy(); charts.series=new Chart($("#seriesChart"),{type:"line",data:{labels,datasets:[{label:"Multiplicateur",data:a,tension:.25,pointRadius:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
+ if(charts.dist)charts.dist.destroy();charts.dist=new Chart($("#distChart"),{type:"bar",data:{labels:["<1.20","1.20-1.50","1.50-2","2-3","3-5","5-10","10+"],datasets:[{label:"Nombre",data:dist(a)}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+}
+function buildPrediction(){
+ let a=clean(data.values); if(a.length<20){$("#predictionBox").className="notice bad";$("#predictionBox").innerHTML="⚠️ Données insuffisantes pour produire une estimation.";return null}
+ let s=currentStats(a), q2=quantile(a,.5),q75=quantile(a,.75);
+ let recent=a.slice(-Math.min(30,a.length)), rs=currentStats(recent);
+ // Scenario probabilities are empirical frequencies with mild recency blending, not claims of causality.
+ let bins=[[1.2,1.8],[1.8,3],[3,Infinity]];
+ let probs=bins.map(([lo,hi])=>{let all=a.filter(x=>x>=lo&&x<hi).length/a.length;let rec=recent.filter(x=>x>=lo&&x<hi).length/recent.length;return .7*all+.3*rec});
+ let sum=probs.reduce((x,y)=>x+y,0); probs=probs.map(x=>x/sum);
+ let sampleFactor=Math.min(1,a.length/100), dispersion=Math.min(1,s.sd/5);
+ let confidence=Math.round(45+35*sampleFactor-15*dispersion);
+ confidence=Math.max(20,Math.min(80,confidence));
+ data.lastConfidence=confidence;
+ const names=["1.20x - 1.80x","1.80x - 3.00x","3.00x+"];
+ let order=probs.map((p,i)=>[p,i]).sort((x,y)=>y[0]-x[0]);
+ $("#predictionBox").className="notice";
+ $("#predictionBox").innerHTML=`<div class="pred">${names[order[0][1]]}</div>
+ <p><b>Scénarios empiriques</b></p>
+ <div class="pills">${probs.map((p,i)=>`<span class="pill">${names[i]} : ${(p*100).toFixed(1)}%</span>`).join("")}</div>
+ <p class="tiny">Score de confiance du modèle : <b>${confidence}/100</b>. Ce score n'est pas une probabilité de réussite. Les pourcentages ci-dessus décrivent la fréquence estimée des intervalles dans l'échantillon, avec un léger poids aux 30 derniers résultats.</p>
+ <p class="tiny">⚠️ Un jeu Crash peut être conçu pour produire des résultats indépendants. Les séquences passées ne garantissent pas le prochain résultat.</p>`;
+ save();
+ return {probs,names,confidence,median:q2,q75};
+}
+function runBacktest(){
+ let a=clean(data.values); if(a.length<25){$("#backResult").innerHTML='<div class="notice bad">⚠️ Il faut au moins 25 résultats.</div>';return}
+ let hits=0,total=0,per=[0,0,0],pc=[0,0,0],start=Math.max(20,a.length-100);
+ for(let i=start;i<a.length;i++){
+  let train=a.slice(0,i),recent=train.slice(-30);
+  let p=[0,0,0],bins=[[1.2,1.8],[1.8,3],[3,Infinity]];
+  bins.forEach((b,j)=>{let all=train.filter(x=>x>=b[0]&&x<b[1]).length/train.length;let rec=recent.filter(x=>x>=b[0]&&x<b[1]).length/recent.length;p[j]=.7*all+.3*rec});
+  let pred=p.indexOf(Math.max(...p)),actual=intervalFor(a[i]);let ai=actual==="<1.20x"?0:actual==="1.20-1.50x"||actual==="1.50-2.00x"?1:actual==="2.00-3.00x"||actual==="3.00-5.00x"?1:2;
+  // The backtest uses the same coarse 3-bin definition as the live estimator.
+  total++;per[pred]++;if(pred===ai){hits++;pc[pred]++}
+ }
+ let acc=hits/total; let baseline=Math.max(...[0,1,2].map(j=>per[j]/total));
+ let meaningful=acc>baseline+.05;
+ $("#backResult").innerHTML=`<div class="grid"><div class="stat"><small>Tests</small><b>${total}</b></div><div class="stat"><small>Réussite</small><b>${(acc*100).toFixed(1)}%</b></div><div class="stat"><small>Classe majoritaire</small><b>${(baseline*100).toFixed(1)}%</b></div><div class="stat"><small>Signal démontré</small><b>${meaningful?"Oui":"Non"}</b></div></div><div class="notice ${meaningful?"good":"warn"}" style="margin-top:10px">${meaningful?"Le modèle dépasse la baseline sur cet échantillon, sans garantie hors échantillon.":"⚠️ Aucun pouvoir prédictif suffisamment démontré par rapport à la baseline sur ce backtest."}</div>`;
+ data.lastBacktest={tests:total,accuracy:acc,baseline,meaningful,date:new Date().toISOString()};save();renderHistory();
+}
+function renderHistory(){
+ let h=data.history||[]; if(!h.length){$("#historyList").textContent="Aucune analyse enregistrée.";return}
+ $("#historyList").innerHTML=h.slice().reverse().map(x=>`<div class="card" style="margin:8px 0"><b>${new Date(x.date).toLocaleString("fr-FR")}</b><br>${x.n} résultats · estimation ${x.pred}<br><span class="tiny">Confiance ${x.conf}/100</span></div>`).join("");
+}
+function renderExpert(){
+ let b=data.lastBacktest;$("#expertBox").innerHTML=`<table><tr><th>Élément</th><th>Valeur</th></tr><tr><td>Modèle</td><td>Fréquence empirique + récence</td></tr><tr><td>Fenêtre récente</td><td>30 observations</td></tr><tr><td>Score confiance</td><td>${data.lastConfidence??"—"}/100</td></tr><tr><td>Backtest</td><td>${b?b.tests+" tests, "+(b.accuracy*100).toFixed(1)+"%":"Non effectué"}</td></tr></table>`;
+}
+function renderAll(){renderValues();renderDashboard();renderAnalysis();renderHistory();renderExpert();$("#detectInfo").textContent=`${data.values.length} résultats actuellement enregistrés.`}
+async function ocr(files){
+ if(!files.length)return;$("#ocrLoader").classList.add("show");let found=[];
+ try{
+  const worker=await Tesseract.createWorker("eng",1,{logger:m=>{if(m.progress){$("#ocrProgress").style.width=(m.progress*100)+"%";$("#ocrText").textContent=(m.status||"Lecture")+" "+Math.round(m.progress*100)+"%"}}});
+  for(const f of files){let r=await worker.recognize(f);let text=r.data.text||"";let matches=text.match(/(?:\d{1,5}(?:[.,]\d{1,2})?)\s*x?/gi)||[];matches.forEach(t=>{let n=parseFloat(t.replace(/[xX]/g,"").replace(",","."));if(Number.isFinite(n)&&n>=1&&n<=100000)found.push(n)})}
+  await worker.terminate();
+  // De-duplicate exact values only when they are adjacent in the imported OCR stream.
+  let cleanFound=[];found.forEach(n=>{if(!cleanFound.length||Math.abs(cleanFound.at(-1)-n)>1e-9)cleanFound.push(n)});
+  data.values=[...data.values,...cleanFound];save();
+  $("#detectInfo").className="notice good";$("#detectInfo").textContent=`${cleanFound.length} résultats détectés. Vérifie les valeurs avant analyse.`;
+  showTab("data");renderAll();
+ }catch(e){$("#detectInfo").className="notice bad";$("#detectInfo").textContent="OCR indisponible ou erreur de lecture. Tu peux saisir les résultats manuellement.";console.error(e)}
+ finally{$("#ocrLoader").classList.remove("show")}
+}
+function showTab(id){document.querySelectorAll("section").forEach(s=>s.classList.toggle("active",s.id===id));document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id))}
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+$("#fileInput").onchange=e=>ocr([...e.target.files]);
+$("#addBtn").onclick=()=>{let v=prompt("Entre le multiplicateur, par exemple 2.34");let n=parseFloat((v||"").replace(",","."));if(Number.isFinite(n)&&n>=1){data.values.push(n);save();renderAll()}};
+$("#clearBtn").onclick=()=>{if(confirm("Effacer tous les résultats ?")){data.values=[];save();renderAll()}};
+$("#saveBtn").onclick=()=>{save();alert("Données sauvegardées sur cet iPhone.")};
+$("#analyzeBtn").onclick=()=>{let p=buildPrediction();if(p){data.history.push({date:new Date().toISOString(),n:data.values.length,pred:p.names[p.probs.indexOf(Math.max(...p.probs))],conf:p.confidence});save();renderAll();}};
+$("#backBtn").onclick=runBacktest;
+if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+renderAll();
+</script>
+</body>
+</html>
